@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Forks Dashboard</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="styles.css"> 
+  <style>
+    .container {
+    margin-top: 50px;
+  }
+  
+  .custom-table {
+    background: linear-gradient(45deg, #549791, #d9e553);
+    color: white;
+  }
+  
+  .custom-table thead th {
+    color: white;
+  }
+  
+  .custom-table tbody td.commit-item {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .custom-table tbody td.commit-item:hover {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  
+  .btn-primary {
+    background-color: #be29d8;
+    border-color: #d829d8;
+  }
+  
+  .btn-primary:hover {
+    background-color: #991e64;
+    border-color: #495664;
+  }
+  .container {
+    margin-top: 50px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-control {
+    border-radius: 5px;
+  }
+  
+  #fetchBtn {
+    background-color: #2989d8;
+    border-color: #2989d8;
+    color: white;
+    transition: background-color 0.3s ease;
+  }
+  
+  #fetchBtn:hover {
+    background-color: #1e5799;
+    border-color: #1e5799;
+  }
+ 
+  .container {
+    margin-top: 50px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-control {
+    border-radius: 5px;
+  }
+  
+  #fetchBtn {
+    background-color: #2989d8;
+    border-color: #2989d8;
+    color: white;
+    transition: background-color 0.3s ease;
+  }
+  
+  #fetchBtn:hover {
+    background-color: #1e5799;
+    border-color: #1e5799;
+  }
+  
+  
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#fetchBtn').click(function() {
+        var repoOwner = $('#ownerInput').val();
+        var repoName = $('#repoInput').val();
+        var  accessToken = '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';  
+
+        
+        $.ajax({
+          url: 'https://api.github.com/repos/' + repoOwner + '/' + repoName + '/forks',
+          type: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + accessToken
+          },
+          success: function(data) {
+            var forksTable = '<div class="table-responsive"><table class="table table-bordered custom-table">';
+            forksTable += '<thead><tr><th>Fork</th><th>Branch</th><th>Commit</th></tr></thead>';
+            forksTable += '<tbody>';
+            
+            for (var i = 0; i < data.length; i++) {
+              var fork = data[i];
+              forksTable += '<tr><td><a href="' + fork.html_url + '">' + fork.full_name + '</a></td>';
+              
+              
+              $.ajax({
+                url: fork.url + '/branches',
+                type: 'GET',
+                async: false,
+                headers: {
+                  'Authorization': 'Bearer ' + accessToken
+                },
+                success: function(branches) {
+                  var branchRowSpan = branches.length > 0 ? branches.length : 1;
+                  
+                  for (var j = 0; j < branches.length; j++) {
+                    var branch = branches[j];
+                    
+                    forksTable += '<td rowspan="' + branchRowSpan + '">' + branch.name + '</td>';
+                    
+                    
+                    $.ajax({
+                      url: branch.commit.url + '/commits',
+                      type: 'GET',
+                      async: false,
+                      headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                      },
+                      success: function(commits) {
+                        for (var k = 0; k < commits.length; k++) {
+                          var commit = commits[k];
+                          var commitMessage = commit.commit.message;
+                          forksTable += '<td class="commit-item" title="' + commitMessage + '">' + commitMessage + '</td></tr>';
+                          if (k < commits.length - 1) {
+                            forksTable += '<tr>';
+                          }
+                        }
+                      },
+                      error: function() {
+                        forksTable += '<td class="commit-item">Error fetching commits.</td></tr>';
+                      }
+                    });
+                  }
+                  
+                  if (branches.length === 0) {
+                    forksTable += '<td></td><td></td></tr>';
+                  }
+                },
+                error: function() {
+                  forksTable += '<td></td><td class="commit-item">Error fetching branches.</td></tr>';
+                }
+              });
+            }
+            
+            forksTable += '</tbody></table></div>';
+            
+            $('#forks').html(forksTable);
+          },
+          error: function() {
+            $('#forks').html('Error fetching forks.');
+          }
+        });
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Fetch Forks Dashboard</h1>
+    
+    <div class="form-group">
+      <label for="ownerInput">Repository Owner:</label>
+      <input type="text" id="ownerInput" class="form-control">
+    </div>
+    
+    <div class="form-group">
+      <label for="repoInput">Repository Name:</label>
+      <input type="text" id="repoInput" class="form-control">
+    </div>
+    
+    <div class="form-group">
+      <button id="fetchBtn" class="btn btn-primary">Fetch Forks</button>
+    </div>
+    
+    <div id="forks"></div>
+  </div>
+</body>
+</html>
